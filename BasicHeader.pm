@@ -3,10 +3,11 @@ use strict;
 use warnings;
 
 use vars qw($VERSION);
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 BEGIN{
    *provide=*string;
+   *borken=*invalid;
 }
 
 use constant APP_ID_FIN=>'F';
@@ -15,7 +16,7 @@ use constant APP_ID_GPA_LOG=>'L';
 
 use constant SERVICE_ID_USER_2_USER=>1;
 
-############################################################
+###########################################################################################################
 # The Basic Header is block number 1 of a SWIFT message.
 # This block appears in all SWIFT messages.
 #
@@ -26,13 +27,24 @@ use constant SERVICE_ID_USER_2_USER=>1;
 #
 # To create an output basic block, subclass this class and
 # implement the required specifics.
-############################################################
+###########################################################################################################
 sub new {
    my$self={};
    bless($self,shift())->_init(@_);
 }
 
-############################################################
+###########################################################################################################
+# The class cannot guarantee that the provided string will be valid in the SWIFT network.
+# It can point out that it's found some invalid data, though.
+# Return number of problems detected.
+sub invalid {
+   my$self=shift;
+
+   # Implement verifications here!
+   0;
+}
+
+###########################################################################################################
 sub string {
    my$self=shift;
    '{1:'.
@@ -46,12 +58,7 @@ sub string {
    '}';
 }
 
-############################################################
-sub version {
-   $VERSION;
-}
-
-############################################################
+###########################################################################################################
 sub _init {
    my$self=shift;
    my%args=(
@@ -74,6 +81,7 @@ sub _init {
    $self;
 }
 
+###########################################################################################################
 'Choppers rule';
 __END__
 
@@ -96,11 +104,18 @@ Given reasonable parameter values in the constructor, the string method in this 
 
 =head1 CONSTRUCTOR
 
-=head4 new( APPLICATION_ID=>'F', SERVICE_ID=>1, BIC=>'VALIDBIC', TERMINAL=>'X', BRANCH_CODE=>'XXX', SESSION_NBR=>0, INPUT_SEQUENCE_NBR=>0)
+=over 4
+
+=item new( APPLICATION_ID=>'F', SERVICE_ID=>1, BIC=>'VALIDBIC', TERMINAL=>'X', BRANCH_CODE=>'XXX', SESSION_NBR=>0, INPUT_SEQUENCE_NBR=>0)
+
+=back
 
 =over 4
 
 The parameters may be given in arbitrary order.
+Many parameters have builtin default values.
+If the calling application doesn't provide the parameter at all,
+the object will apply the default value.
 
 =item C<APPLICATION_ID=E<gt>>
 
@@ -137,17 +152,17 @@ Default value: 1, which will output as '01'.
 
 Technically optional,
 but it will probably quite rarely make sense to instantiate an object of this class without specifying a BIC.
-An eight character value that contains a valid reciever BIC.
+An eight character value that contains a valid receiver BIC.
 
 =item C<TERMINAL=E<gt>>
 
-Optional. A one character value that identifies the recieving terminal.
+Optional. A one character value that identifies the receiving terminal.
 
 Default value: 'X'.
 
 =item C<BRANCH_CODE=E<gt>>
 
-Optional. A three character value that identifies the branch code at the reciever.
+Optional. A three character value that identifies the branch code at the receiver.
 
 Default value: 'XXX'.
 
@@ -170,25 +185,101 @@ Default value: 0, which will output as '000000'.
 
 =back
 
-=head2 Example:
+=head2 Typical example of a constructor
 
-=head4 new( APPLICATION_ID=>SWIFT::Factory::BasicHeader->APP_ID_FIN, BIC=>'VALIDBIC', INPUT_SEQUENCE_NBR=>2)
+ use SWIFT::Factory::BasicHeader;
 
-=head1 PUBLIC METHODS
+ my $h1 = new(APPLICATION_ID=>SWIFT::Factory::BasicHeader->APP_ID_FIN,
+              BIC=>'VALIDBIC',
+              INPUT_SEQUENCE_NBR=>2)
+
+=head1 PUBLIC CLASS METHODS
+
+Class methods are always called with the fully qualified name, like:
+
+ print SWIFT::Factory::BasicHeader::APP_ID_FIN();
+
+(The new() constructor is a typical example of a class method.)
 
 =over 4
 
-=item string()
+=item APP_ID_FIN
 
-Will return a fully formatted string containing a Basic Header Block 1 for a SWIFT message.
+Returns a valid code for the I<Application ID> in a SWIFT User-to-user or FIN message.
+This can be used to I<explicitly> feed the new() constructor with the code for a
+I<User-to-user or FIN message>
+in the C<APPLICATION_ID=E<gt>> parameter,
+even though this is the default value in the constructor.
+
+=item APP_ID_GPA
+
+Returns a valid code for the I<Application ID> in a SWIFT I<GPA message>.
+This can be used to feed the new() constructor with the code for a normal I<GPA message>
+in the C<APPLICATION_ID=E<gt>> parameter.
+
+=item APP_ID_GPA_LOG
+
+Returns a valid code for the I<Application ID> in a SWIFT I<Specific GPA message>.
+This can be used to feed the new() constructor with the code for a I<Specific GPA message>
+in the C<APPLICATION_ID=E<gt>> parameter.
+
+This Application ID is used for some GPA I<login> messages.
+Please, see the specific SWIFT documentation for details.
+
+=item SERVICE_ID_USER_2_USER
+
+Returns a valid code for the I<Service ID> in a SWIFT message.
+There are several values for this ID,
+but the User-to-user ID is the most commonly used.
+
+This can be used to I<explicitly> feed the new() constructor with the code for a
+I<User-to-user message> in the C<SERVICE_ID=E<gt>> parameter,
+even though this is the default value in the constructor.
+
+For any other Service ID's, please see the relevant SWIFT documentation.
+If you frequently use another value,
+please contact me and I might include the value as a class method in this module.
+
+=back
+
+=head1 PUBLIC OBJECT METHODS
+
+=over 4
+
+=item borken()
+
+A really broken alias for invalid(). Will execute exactly the same code as the invalid() method.
+
+=item invalid()
+
+Will return the number of errors detected in the objects instance data.
+
+The class can never be charged to B<guarrantee> that the provided string() will be fully compliant
+with the SWIFT standards or SWIFT verification rules.
+It can only point out known problems in the object as it is currently loaded.
+
+B<BETA>
+
+Please beware that the current implementation of invalid() doesn't check anything at all.
+Consider it a placeholder for now.
+When time permits, the method will be filled with validation code.
+
+B<Return value:>
+
+As it stands, the method will always return zero since it wasn't able to discover any error at all.
 
 =item provide()
 
 An alias for string(). Will execute exactly the same code as the string() method.
 
-=item version()
+=item string()
+
+Will return a fully formatted string containing a Basic Header Block 1 for a SWIFT message.
+
+=item VERSION()
 
 Will return the version of this Perl module.
+(This method is inherited from the UNIVERSAL class.)
 
 =back
 
