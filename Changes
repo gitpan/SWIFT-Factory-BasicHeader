@@ -12,3 +12,6 @@ Revision history for Perl extension SWIFT::Factory::BasicHeader.
 
       - Minor corrections in the POD.
 
+0.03  06-Mar-2003
+      - Transfered ownership of module to BIKER.
+
